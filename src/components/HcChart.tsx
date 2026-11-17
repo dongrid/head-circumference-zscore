@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { getLMS, zToValue, AGE_MIN, AGE_MAX, type Sex } from "@/lib/hc";
+import { getLMS, zToValue, AGE_MIN, AGE_MAX, SWITCH_AGE, type Sex } from "@/lib/hc";
 
 interface Props {
   sex: Sex;
@@ -39,14 +39,17 @@ const toBand = (top: P[], bot: P[]) =>
   `${toPath(top)} ${[...bot].reverse().map((p) => `L${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ")} Z`;
 
 export default function HcChart({ sex, ageYears, value, zScore }: Props) {
-  const { ages, val, toX, toY, yTicks } = useMemo(() => {
-    const ages = Array.from({ length: N + 1 }, (_, i) => AGE_MIN + (i / N) * (AGE_MAX - AGE_MIN));
-    const val = (z: number) =>
+  // 6歳で優先する基準が切り替わるので、曲線は6歳の前後で別々に描く（つながない）
+  const { segs, val, toX, toY, yTicks } = useMemo(() => {
+    const span = (a0: number, a1: number, n: number) =>
+      Array.from({ length: n + 1 }, (_, i) => a0 + (i / n) * (a1 - a0));
+    const segs = [span(AGE_MIN, SWITCH_AGE - 1e-6, N / 3), span(SWITCH_AGE, AGE_MAX, (N * 2) / 3)];
+    const val = (z: number, ages: number[]) =>
       ages.map((a) => {
         const { L, M, S } = getLMS(sex, a);
         return zToValue(z, L, M, S);
       });
-    const all = [...val(-2.5), ...val(2.5)];
+    const all = segs.flatMap((ag) => [...val(-2.5, ag), ...val(2.5, ag)]);
     if (value !== null) all.push(value);
     const lo = Math.floor((Math.min(...all) - 0.5) / 2) * 2;
     const hi = Math.ceil((Math.max(...all) + 0.5) / 2) * 2;
@@ -54,11 +57,11 @@ export default function HcChart({ sex, ageYears, value, zScore }: Props) {
     const toY = (v: number) => plotY1 - ((v - lo) / (hi - lo)) * plotH;
     const yTicks: number[] = [];
     for (let v = lo; v <= hi + 1e-9; v += 2) yTicks.push(v);
-    return { ages, val, toX, toY, yTicks };
+    return { segs, val, toX, toY, yTicks };
   }, [sex, value]);
 
-  const line = (z: number) => {
-    const v = val(z);
+  const line = (z: number, ages: number[]) => {
+    const v = val(z, ages);
     return ages.map((a, i) => ({ x: toX(a), y: toY(v[i]) }));
   };
 
@@ -78,20 +81,31 @@ export default function HcChart({ sex, ageYears, value, zScore }: Props) {
         <line key={a} x1={toX(a)} y1={plotY0} x2={toX(a)} y2={plotY1} stroke={grid} />
       ))}
 
-      <path d={toBand(line(1), line(-1))} fill="rgba(34,197,94,0.10)" />
-      <path d={toBand(line(2), line(1))} fill="rgba(245,158,11,0.12)" />
-      <path d={toBand(line(-1), line(-2))} fill="rgba(245,158,11,0.12)" />
-      <path
-        d={toBand(line(2.5), line(2.5).map((p) => ({ x: p.x, y: plotY0 })))}
-        fill="rgba(239,68,68,0.08)"
-      />
+      {segs.map((ag, si) => (
+        <g key={si}>
+          <path d={toBand(line(1, ag), line(-1, ag))} fill="rgba(34,197,94,0.10)" />
+          <path d={toBand(line(2, ag), line(1, ag))} fill="rgba(245,158,11,0.12)" />
+          <path d={toBand(line(-1, ag), line(-2, ag))} fill="rgba(245,158,11,0.12)" />
+          <path
+            d={toBand(line(2.5, ag), line(2.5, ag).map((p) => ({ x: p.x, y: plotY0 })))}
+            fill="rgba(239,68,68,0.08)"
+          />
+        </g>
+      ))}
+
+      <line x1={toX(SWITCH_AGE)} y1={plotY0} x2={toX(SWITCH_AGE)} y2={plotY1} stroke="#94a3b8" strokeDasharray="2,3" />
+      <text x={toX(SWITCH_AGE) - 4} y={plotY0 + 10} textAnchor="end" fontSize={9} fill={text}>2010年調査</text>
+      <text x={toX(SWITCH_AGE) + 4} y={plotY0 + 10} fontSize={9} fill={text}>Anzo 2002</text>
 
       {SD_LINES.map(({ z, label, color, dash }) => {
-        const pts = line(z);
+        const parts = segs.map((ag) => line(z, ag));
+        const last = parts[parts.length - 1];
         return (
           <g key={label}>
-            <path d={toPath(pts)} fill="none" stroke={color} strokeWidth={z === 0 ? 2 : 1.5} strokeDasharray={dash || undefined} />
-            <text x={pts[pts.length - 1].x + 4} y={pts[pts.length - 1].y + 4} fontSize={9} fill={color} fontWeight={500}>
+            {parts.map((pts, i) => (
+              <path key={i} d={toPath(pts)} fill="none" stroke={color} strokeWidth={z === 0 ? 2 : 1.5} strokeDasharray={dash || undefined} />
+            ))}
+            <text x={last[last.length - 1].x + 4} y={last[last.length - 1].y + 4} fontSize={9} fill={color} fontWeight={500}>
               {label}
             </text>
           </g>

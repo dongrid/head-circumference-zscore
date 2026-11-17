@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import AppShell from "@/components/AppShell";
 import HcChart from "@/components/HcChart";
-import { getLMS, calcZScore, heightSds, AGE_MIN, AGE_MAX, type Sex } from "@/lib/hc";
+import { getRefs, calcZScore, heightSds, AGE_MIN, AGE_MAX, REF_LABEL, type RefId, type Sex } from "@/lib/hc";
 
 function hcInterpret(z: number): string {
   if (z > 2.0) return "大頭（+2 SD 超）";
@@ -61,12 +61,15 @@ export default function Home() {
 
   const outOfRange = age !== null && (age < AGE_MIN || age > AGE_MAX);
 
-  const hc = useMemo(() => {
+  // 先頭が優先する基準（6歳未満は2010年調査、6歳以上は Anzo 2002）。6歳未満は Anzo も併記する。
+  const hcAll = useMemo((): { id: RefId; z: number; M: number }[] => {
     const x = parsePositive(hcInput);
-    if (x === null || age === null || outOfRange) return { x, z: null, M: null, L: null, S: null };
-    const { L, M, S } = getLMS(sex, age);
-    return { x, z: calcZScore(x, L, M, S), M, L, S };
+    if (x === null || age === null || outOfRange) return [];
+    return getRefs(sex, age).map(({ id, lms }) => ({ id, z: calcZScore(x, lms.L, lms.M, lms.S), M: lms.M }));
   }, [hcInput, age, outOfRange, sex]);
+  const hcX = parsePositive(hcInput);
+  const hc = hcAll[0] ?? null;
+  const hcOther = hcAll.slice(1);
 
   const ht = useMemo(() => {
     const h = parsePositive(heightInput);
@@ -74,10 +77,10 @@ export default function Home() {
     return heightSds(sex, age, h);
   }, [heightInput, age, outOfRange, sex]);
 
-  const hchi = hc.z !== null && ht !== null ? ht.z - hc.z / 2 : null;
+  const hchi = hc !== null && ht !== null ? ht.z - hc.z / 2 : null;
 
   return (
-    <AppShell title="頭囲 SDS・HCH-I" subtitle="0〜18 歳 · 日本人小児 · 頭囲 0〜6歳 2010年調査（学会の曲線）／7歳以降 Anzo 2002 · 身長 学会 2000年基準" maxWidth="6xl">
+    <AppShell title="頭囲 SDS・HCH-I" subtitle="0〜18 歳 · 日本人小児 · 頭囲 6歳未満 2010年調査（学会の曲線）＋Anzo 2002 併記／6歳以上 Anzo 2002 · 身長 学会 2000年基準" maxWidth="6xl">
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
         <div className="flex flex-col gap-4">
           <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 sm:p-5 shadow-sm">
@@ -158,15 +161,20 @@ export default function Home() {
               頭囲曲線（{sex === "male" ? "男子" : "女子"}）
             </p>
 
-            {(hc.z !== null || ht !== null) && (
+            {(hc !== null || ht !== null) && (
               <div className="mb-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div className="rounded-xl px-4 py-3 bg-slate-50 dark:bg-slate-900">
                   <p className="text-xs text-slate-500 dark:text-slate-400">頭囲 SDS</p>
-                  {hc.z !== null ? (
+                  {hc !== null ? (
                     <>
                       <p className={`text-2xl font-bold tabular-nums ${zColor(hc.z)}`}>{sign(hc.z)}</p>
                       <p className="text-xs font-medium text-slate-600 dark:text-slate-400">{hcInterpret(hc.z)}</p>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 font-mono mt-1">M = {hc.M!.toFixed(1)} cm</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">基準：{REF_LABEL[hc.id]}（M = {hc.M.toFixed(1)} cm）</p>
+                      {hcOther.map((o) => (
+                        <p key={o.id} className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          参考 {REF_LABEL[o.id]}：<span className="font-mono">{sign(o.z)}</span>（M = {o.M.toFixed(1)} cm）
+                        </p>
+                      ))}
                     </>
                   ) : (
                     <p className="text-sm text-slate-400">—</p>
@@ -193,6 +201,11 @@ export default function Home() {
                       <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
                         {hchi < -2 ? "相対的大頭（−2 未満）" : "相対的大頭なし（−2 以上）"}
                       </p>
+                      {ht !== null && hcOther.map((o) => (
+                        <p key={o.id} className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          参考 {REF_LABEL[o.id]}：<span className="font-mono">{sign(ht.z - o.z / 2)}</span>
+                        </p>
+                      ))}
                     </>
                   ) : (
                     <p className="text-sm text-slate-400">頭囲と身長を入力</p>
@@ -201,7 +214,7 @@ export default function Home() {
               </div>
             )}
 
-            <HcChart sex={sex} ageYears={age} value={hc.x} zScore={hc.z} />
+            <HcChart sex={sex} ageYears={age} value={hcX} zScore={hc?.z ?? null} />
 
             <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700 space-y-1">
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -209,7 +222,7 @@ export default function Home() {
                 ＝身長SDS − 頭囲SDS/2。−2 未満で、ほかに原因がなければ相対的大頭（軟骨低形成症の国際基準の大基準、Dauber 2026）。頭囲 +2 SD 超は絶対的大頭（小基準）。
               </p>
               <p className="text-xs text-slate-400 dark:text-slate-500">
-                頭囲の基準は、0〜6 歳が学会の頭囲曲線と同じ2010年乳幼児身体発育調査、7 歳以降が Anzo 2002（1992〜94年調査）。6〜7 歳は両者の間をつないでいる。
+                頭囲の基準：6 歳未満は学会の頭囲曲線と同じ2010年乳幼児身体発育調査を優先し、Anzo 2002（1990年調査）の値も参考に併記する。6 歳以上は Anzo 2002（6〜7 歳は Anzo の表の中で補間）。別々の基準を混ぜた値は作らないため、6 歳で SDS に段差が出る。
               </p>
             </div>
           </div>
