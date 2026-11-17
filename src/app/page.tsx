@@ -77,7 +77,7 @@ export default function Home() {
   const hchi = hc.z !== null && ht !== null ? ht.z - hc.z / 2 : null;
 
   return (
-    <AppShell title="頭囲 SDS・HCH-I" subtitle="0〜18 歳 · 日本人小児 · 頭囲 Anzo 2002 / 身長 日本小児内分泌学会 2000年基準" maxWidth="6xl">
+    <AppShell title="頭囲 SDS・HCH-I" subtitle="0〜18 歳 · 日本人小児 · 頭囲 0〜6歳 2010年調査（学会の曲線）／7歳以降 Anzo 2002 · 身長 学会 2000年基準" maxWidth="6xl">
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
         <div className="flex flex-col gap-4">
           <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 sm:p-5 shadow-sm">
@@ -155,7 +155,7 @@ export default function Home() {
         <div className="flex flex-col gap-4">
           <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 sm:p-5 shadow-sm">
             <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">
-              頭囲曲線（{sex === "male" ? "男子" : "女子"}、Anzo 2002）
+              頭囲曲線（{sex === "male" ? "男子" : "女子"}）
             </p>
 
             {(hc.z !== null || ht !== null) && (
@@ -209,7 +209,7 @@ export default function Home() {
                 ＝身長SDS − 頭囲SDS/2。−2 未満で、ほかに原因がなければ相対的大頭（軟骨低形成症の国際基準の大基準、Dauber 2026）。頭囲 +2 SD 超は絶対的大頭（小基準）。
               </p>
               <p className="text-xs text-slate-400 dark:text-slate-500">
-                6 歳未満の頭囲は Anzo 2002 では1990年の調査に基づく。学会の0〜6歳頭囲曲線（2010年調査）のほうが新しい。
+                頭囲の基準は、0〜6 歳が学会の頭囲曲線と同じ2010年乳幼児身体発育調査、7 歳以降が Anzo 2002（1992〜94年調査）。6〜7 歳は両者の間をつないでいる。
               </p>
             </div>
           </div>

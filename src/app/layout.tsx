@@ -6,7 +6,7 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "頭囲 SDS・HCH-I",
-  description: "Anzo 2002 の LMS による日本人小児（0〜18 歳）の頭囲 SDS と、身長 SDS から HCH-I を計算するツール",
+  description: "日本人小児（0〜18 歳）の頭囲 SDS（0〜6歳は2010年乳幼児身体発育調査、7歳以降は Anzo 2002） と、身長 SDS から HCH-I を計算するツール",
 };
 
 export const viewport: Viewport = {
