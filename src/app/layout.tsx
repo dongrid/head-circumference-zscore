@@ -5,8 +5,8 @@ import "./globals.css";
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "頭囲 SDS・HCH-I",
-  description: "日本人小児（0〜18 歳）の頭囲 SDS（6歳未満は2010年乳幼児身体発育調査を優先し Anzo 2002 を併記、6歳以上は Anzo 2002） と、身長 SDS から HCH-I を計算するツール",
+  title: "頭囲 SDS",
+  description: "日本人小児（0〜18 歳）の頭囲 SDS（6歳未満は2010年乳幼児身体発育調査を優先し Anzo 2002 を併記、6歳以上は Anzo 2002）を計算するツール。身長を入れると HCH-I も出す",
 };
 
 export const viewport: Viewport = {

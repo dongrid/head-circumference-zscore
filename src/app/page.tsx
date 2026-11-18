@@ -80,7 +80,7 @@ export default function Home() {
   const hchi = hc !== null && ht !== null ? ht.z - hc.z / 2 : null;
 
   return (
-    <AppShell title="頭囲 SDS・HCH-I" subtitle="0〜18 歳 · 日本人小児 · 頭囲 6歳未満 2010年調査（学会の曲線）＋Anzo 2002 併記／6歳以上 Anzo 2002 · 身長 学会 2000年基準" maxWidth="6xl">
+    <AppShell title="頭囲 SDS" subtitle="0〜18 歳 · 日本人小児 · 頭囲 6歳未満 2010年調査（学会の曲線）＋Anzo 2002 併記／6歳以上 Anzo 2002 · 身長 学会 2000年基準" maxWidth="6xl">
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
         <div className="flex flex-col gap-4">
           <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 sm:p-5 shadow-sm">
